@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="SilentPulse is an AI-powered cardiovascular monitoring system for anomaly detection, future risk forecasting, and SHAP-based clinical explainability.">
+  <title>SilentPulse AI | Cardiovascular Intelligence Platform</title>
+  
+  <!-- Favicon (Inline SVG Pulse) -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2306b6d4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 12h-4l-3 9L9 3l-3 9H2'/%3E%3C/svg%3E" />
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+  
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-darkBg text-gray-100 antialiased font-sans">
+  <script>
+    (function() {
+      const theme = localStorage.getItem("theme") || "light";
+      if (theme === "light") {
+        document.body.classList.add("light-theme");
+      }
+    })();
+  </script>
+  
+  <!-- Application Container -->
+  <div class="app-container">
+    
+    <!-- Top Navbar Header -->
+    <header class="navbar">
+      <div class="navbar-brand">
+        <div class="logo-box">
+          <i data-lucide="activity" class="logo-icon animate-pulse-slow"></i>
+        </div>
+        <div class="brand-text">
+          <h1>SilentPulse <span class="badge badge-cyan-glow">Healthcare AI</span></h1>
+          <p class="brand-subtext">Cardiovascular Intelligence & Explainable Diagnostic Platform</p>
+        </div>
+      </div>
+      
+      <!-- Patient and Telemetry status -->
+      <div class="navbar-status">
+        <button id="btn-theme-toggle" class="btn-theme-toggle" title="Toggle Light/Dark Theme" aria-label="Toggle Theme">
+          <i data-lucide="sun" id="theme-icon-sun" class="theme-icon"></i>
+          <i data-lucide="moon" id="theme-icon-moon" class="theme-icon hidden"></i>
+        </button>
+        <div id="nav-session-badge" class="status-card hidden">
+          <i data-lucide="user" class="status-icon text-cyan"></i>
+          <span class="font-semibold text-gray-200">Patient: <strong id="active-patient-id">N/A</strong></span>
+          <span class="status-divider">|</span>
+          <span id="session-tag" class="badge badge-mono">Lead I - Digitized</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- 1. Landing Container (Futuristic Healthcare Portal) -->
+    <div id="landing-container" class="landing-container">
+      <div class="landing-content card glass-panel">
+        
+        <div class="landing-brand">
+          <div class="logo-box logo-large">
+            <i data-lucide="activity" class="logo-icon logo-icon-large"></i>
+          </div>
+          <h2 class="landing-title text-glow-cyan">SilentPulse Intelligence</h2>
+          <p class="landing-subtitle">Explainable AI Cardiovascular ECG Analysis</p>
+        </div>
+        
+        <!-- ECG Pulse Wave Animation -->
+        <div class="ecg-pulse-wrapper">
+          <svg class="ecg-pulse-svg" viewBox="0 0 800 100">
+            <path class="ecg-pulse-path" d="M 0 50 L 250 50 L 260 40 L 270 60 L 280 50 L 320 50 L 330 10 L 345 90 L 360 40 L 370 50 L 410 50 L 420 40 L 430 50 L 800 50" />
+          </svg>
+        </div>
+        
+        <p class="landing-desc">
+          Perform immediate computer vision-based waveform digitization and deep learning anomaly diagnostics. 
+          Upload an ECG screenshot, scan printout, image, or PDF report to generate the patient intelligence dashboard.
+        </p>
+        
+        <!-- Large Dropzone File Uploader -->
+        <div id="landing-dropzone" class="dropzone dropzone-large">
+          <input type="file" id="landing-file-input" class="hidden-input" accept=".hea,.dat,.atr,.png,.jpg,.jpeg,.bmp,.tiff,.pdf">
+          <div id="landing-upload-idle" class="upload-content">
+            <div class="upload-icon-box">
+              <i data-lucide="cloud-upload" class="text-cyan animate-bounce-slow"></i>
+            </div>
+            <div class="upload-text-box">
+              <span class="upload-title">Drag & drop ECG report (Image/PDF)</span>
+              <span class="upload-subtitle">Supports <code class="code-tag">PNG, JPG, PDF, BMP</code> or clinical <code class="code-tag">WFDB</code> pairs</span>
+            </div>
+            <button id="btn-landing-browse" class="btn-browse">Browse Report File</button>
+          </div>
+          <div id="landing-upload-loading" class="upload-content hidden">
+            <i data-lucide="refresh-cw" class="spinner-icon text-cyan animate-spin"></i>
+            <span class="upload-loading-text">Digitizing ECG Signal & Running PyTorch Inference...</span>
+          </div>
+        </div>
+        <div id="landing-upload-status" class="alert-box hidden"></div>
+
+        <div class="landing-features">
+          <div class="feature-item">
+            <i data-lucide="scan" class="text-cyan"></i>
+            <div class="feature-text">
+              <h4>OpenCV Digitizer</h4>
+              <p>Reconstructs 1D signals from digital paper records and scanned grid prints.</p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <i data-lucide="brain-circuit" class="text-purple"></i>
+            <div class="feature-text">
+              <h4>Autoencoder MSE</h4>
+              <p>Evaluates reconstruction deviations to isolate anomalies and ventricular spikes.</p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <i data-lucide="trending-up" class="text-rose"></i>
+            <div class="feature-text">
+              <h4>LSTM Forecasting</h4>
+              <p>Analyzes sequence trends to forecast instability risks up to 5 beats out.</p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <i data-lucide="help-circle" class="text-emerald"></i>
+            <div class="feature-text">
+              <h4>SHAP Explainability</h4>
+              <p>Maps game-theory attributions to locate specific ECG regions driving risks.</p>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+
+    <!-- 2. Dashboard Container (Revealed after Upload) -->
+    <div id="dashboard-container" class="dashboard-container hidden">
+      <main class="dashboard-grid">
+        
+        <!-- Left Panel: Sidebar Demographics & Preview -->
+        <aside class="left-panel">
+          
+          <!-- Small Sidebar Uploader (Always accessible) -->
+          <section class="card glass-panel" aria-label="ECG File Uploader">
+            <div id="sidebar-dropzone" class="dropzone sidebar-dropzone">
+              <input type="file" id="sidebar-file-input" class="hidden-input" accept=".hea,.dat,.atr,.png,.jpg,.jpeg,.bmp,.tiff,.pdf">
+              <div id="sidebar-upload-idle" class="upload-content-sidebar">
+                <i data-lucide="cloud-upload" class="text-cyan sidebar-upload-icon"></i>
+                <div class="sidebar-upload-text">
+                  <span class="upload-title-small">Analyze New Report</span>
+                  <span class="upload-subtitle-small">Drag image/PDF here or click to browse</span>
+                </div>
+                <button id="btn-sidebar-browse" class="btn-browse-small">Browse</button>
+              </div>
+              <div id="sidebar-upload-loading" class="upload-content hidden py-2">
+                <i data-lucide="refresh-cw" class="spinner-icon text-cyan animate-spin"></i>
+                <span class="text-xs text-muted">Digitizing...</span>
+              </div>
+            </div>
+            <div id="sidebar-upload-status" class="alert-box hidden"></div>
+          </section>
+          
+          <!-- Uploaded ECG Report Preview -->
+          <section id="card-report-preview" class="card glass-panel">
+            <h3 class="panel-title text-cyan">
+              <i data-lucide="file-image" class="text-cyan"></i>
+              ECG Report Preview
+            </h3>
+            <div class="report-preview-box">
+              <img id="img-report-preview" src="" alt="Uploaded ECG Report Preview" class="report-preview-img">
+            </div>
+          </section>
+          
+          <!-- Patient Clinical Details Panel -->
+          <section class="card glass-panel" aria-label="Patient Demographics">
+            <h3 class="panel-title text-purple">
+              <i data-lucide="user-check" class="text-purple-400"></i>
+              Patient Information
+            </h3>
+            <div class="selected-beat-details">
+              <div class="detail-row">
+                <span class="detail-label">Patient Session ID:</span>
+                <span id="patient-id-val" class="detail-val text-white font-bold">--</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Age / Gender:</span>
+                <span id="patient-age-gender" class="detail-val text-white font-bold">--</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Lead Channels:</span>
+                <span id="patient-leads" class="detail-val text-cyan-400 font-mono">--</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Clinical Indication:</span>
+                <span id="patient-diagnosis" class="detail-val text-orange font-semibold">--</span>
+              </div>
+              <div class="detail-row flex-col">
+                <span class="detail-label">Report Medications:</span>
+                <span id="patient-meds" class="detail-val text-gray-300 italic mt-1 block-text">--</span>
+              </div>
+            </div>
+          </section>
+          
+          <!-- Signal Integrity Analysis Card (Digitized Reports Only) -->
+          <section id="card-signal-quality" class="card glass-panel hidden">
+            <h3 class="panel-title text-cyan">
+              <i data-lucide="shield-check" class="text-cyan"></i>
+              Signal Integrity Analysis
+            </h3>
+            <div class="selected-beat-details">
+              <div class="vital-box" style="margin-bottom: 0.75rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                  <span class="detail-label">Extraction Confidence:</span>
+                  <span id="metric-extraction-confidence" class="detail-val text-white font-bold">--%</span>
+                </div>
+                <div class="vital-progress bg-gray-900">
+                  <div id="bar-extraction-confidence" class="vital-bar bg-cyan" style="width: 0%"></div>
+                </div>
+              </div>
+              
+              <div class="vital-box" style="margin-bottom: 0.75rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                  <span class="detail-label">Signal Quality (SNR):</span>
+                  <span id="metric-signal-quality" class="detail-val text-white font-bold">--%</span>
+                </div>
+                <div class="vital-progress bg-gray-900">
+                  <div id="bar-signal-quality" class="vital-bar bg-purple" style="width: 0%"></div>
+                </div>
+              </div>
+              
+              <div class="vital-box" style="margin-bottom: 0.75rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                  <span class="detail-label">BPM Confidence:</span>
+                  <span id="metric-bpm-confidence" class="detail-val text-white font-bold">--%</span>
+                </div>
+                <div class="vital-progress bg-gray-900">
+                  <div id="bar-bpm-confidence" class="vital-bar bg-orange" style="width: 0%"></div>
+                </div>
+              </div>
+              
+              <div class="vital-box">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                  <span class="detail-label">Waveform Validity:</span>
+                  <span id="metric-waveform-validity" class="detail-val text-white font-bold">--%</span>
+                </div>
+                <div class="vital-progress bg-gray-900">
+                  <div id="bar-waveform-validity" class="vital-bar bg-emerald" style="width: 0%"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+          
+          <!-- Vitals & Telemetry Stats Panel -->
+          <section class="card glass-panel" aria-label="Telemetry Statistics">
+            <h3 class="panel-title text-rose">
+              <i data-lucide="heart" class="text-red-500 animate-heartbeat"></i>
+              Extracted Vitals
+            </h3>
+            
+            <div class="vitals-row">
+              <div class="vital-box">
+                <span class="vital-title">Heart Rate</span>
+                <div class="vital-value-row">
+                  <span id="vital-bpm" class="vital-num text-glow-green">--</span>
+                  <span class="vital-unit">BPM</span>
+                </div>
+                <div class="vital-progress bg-gray-900">
+                  <div id="vital-bpm-bar" class="vital-bar bg-emerald animate-pulse-slow" style="width: 0%"></div>
+                </div>
+              </div>
+              
+              <div class="vital-box">
+                <span class="vital-title">R-Peaks Segmented</span>
+                <div class="vital-value-row">
+                  <span id="vital-peaks" class="vital-num text-glow-cyan">--</span>
+                  <span class="vital-unit">Beats</span>
+                </div>
+                <div class="vital-progress bg-gray-900">
+                  <div id="vital-peaks-bar" class="vital-bar bg-cyan" style="width: 0%"></div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Selected Beat Telemetry -->
+            <div class="selected-beat-details">
+              <div class="detail-row">
+                <span class="detail-label">Selected Cycle:</span>
+                <span id="txt-selected-beat-num" class="detail-val text-white font-bold">--</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Center Sample index:</span>
+                <span id="txt-selected-beat-sample" class="detail-val font-mono text-cyan-400">--</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Anomaly Label:</span>
+                <span id="txt-selected-beat-label" class="detail-val badge badge-gray font-bold">--</span>
+              </div>
+            </div>
+          </section>
+        </aside>
+        
+        <!-- Right Panel: AI Analytics Outputs -->
+        <div class="right-panel">
+          
+          <!-- AI Model Metric Scoreboard -->
+          <section class="metric-grid" aria-label="AI Model Scores">
+            
+            <!-- Metric 1: Anomaly Score -->
+            <div class="metric-card glass-panel border-bottom-cyan">
+              <div class="metric-card-header">
+                <div>
+                  <h4 class="metric-title">Active Anomaly Index</h4>
+                  <p class="metric-subtitle">Autoencoder reconstruction MSE</p>
+                </div>
+                <div class="metric-icon-box bg-cyan-950 border-cyan">
+                  <i data-lucide="brain"></i>
+                </div>
+              </div>
+              <div class="metric-value-box">
+                <span id="metric-anomaly-score" class="metric-num text-glow-cyan">--</span>
+                <span class="metric-unit">MSE</span>
+              </div>
+            </div>
+            
+            <!-- Metric 2: Risk Badge -->
+            <div id="risk-metric-card" class="metric-card glass-panel border-bottom-green">
+              <div class="metric-card-header">
+                <div>
+                  <h4 class="metric-title">LSTM Risk Level</h4>
+                  <p class="metric-subtitle">Future sequence prognosis</p>
+                </div>
+                <div id="risk-icon-box" class="metric-icon-box bg-emerald-950 border-emerald text-emerald">
+                  <i data-lucide="shield-alert"></i>
+                </div>
+              </div>
+              <div class="metric-value-box">
+                <span id="metric-risk-badge" class="badge badge-risk uppercase font-black">--</span>
+                <span class="metric-trend-subtext">Trend: <strong id="metric-risk-prognosis" class="text-white">--</strong></span>
+              </div>
+            </div>
+            
+            <!-- Metric 3: LSTM Forecast Trend -->
+            <div class="metric-card glass-panel border-bottom-orange">
+              <div class="metric-card-header">
+                <div>
+                  <h4 class="metric-title">Anomaly Trend Projection</h4>
+                  <p class="metric-subtitle">Max projected score (+5 beats)</p>
+                </div>
+                <div class="metric-icon-box bg-orange-950 border-orange text-orange">
+                  <i data-lucide="trending-up"></i>
+                </div>
+              </div>
+              <div class="metric-value-box">
+                <span id="metric-forecast-score" class="metric-num text-white">--</span>
+                <span id="metric-forecast-trend" class="badge badge-trend">--</span>
+              </div>
+            </div>
+          </section>
+          
+          <!-- Quality Warning Panel -->
+          <section id="quality-warning-banner" class="error-banner glass-panel hidden" style="border-left: 4px solid var(--color-orange); background-color: rgba(249, 115, 22, 0.06); margin-bottom: 1.5rem;">
+            <i data-lucide="alert-circle" class="error-icon" style="color: var(--color-orange);"></i>
+            <div>
+              <h4 class="error-title" style="color: var(--color-orange); font-size: 0.9rem; font-weight: 700;">Signal Integrity Advisories</h4>
+              <ul id="quality-warning-list" class="error-desc" style="margin-left: 1.25rem; list-style-type: disc; margin-top: 0.25rem; font-size: 0.75rem; color: var(--text-main); line-height: 1.4;">
+                <!-- Dynamically populated warnings -->
+              </ul>
+            </div>
+          </section>
+          
+          <!-- AI Clinical Interpretation Banner -->
+          <section id="alert-banner" class="alert-banner glass-panel hidden">
+            <i data-lucide="info" class="alert-banner-icon"></i>
+            <div class="alert-banner-content">
+              <h5 class="alert-banner-title">AI Clinical Interpretation</h5>
+              <p id="alert-banner-message" class="alert-banner-desc">Initial diagnostics loading...</p>
+              <div class="alert-banner-action-row">
+                <span class="alert-action-label">Clinical Action Plan:</span>
+                <span id="alert-banner-action" class="alert-action-text">-</span>
+              </div>
+            </div>
+          </section>
+          
+          <!-- Error Alert Panel -->
+          <section id="error-banner" class="error-banner glass-panel hidden">
+            <i data-lucide="alert-triangle" class="error-icon"></i>
+            <div>
+              <h4 class="error-title">System Exception Error</h4>
+              <p id="error-message" class="error-desc"></p>
+            </div>
+          </section>
+          
+          <!-- Chart Section 1: Extracted Waveform Strip -->
+          <section class="card glass-panel h-large">
+            <div class="chart-header">
+              <h3 class="chart-title text-cyan-400">
+                <span class="chart-pulse-dot bg-cyan animate-ping"></span>
+                Extracted ECG Waveform Graph
+              </h3>
+              <span class="chart-instructions">
+                Click R-peak dots (green/red) to select and analyze individual beats
+              </span>
+            </div>
+            <div class="chart-wrapper grid-bg relative">
+              <canvas id="chart-waveform"></canvas>
+              <div id="loader-waveform" class="chart-loader">
+                <i data-lucide="refresh-cw" class="animate-spin text-cyan-400"></i>
+                <span>Loading digitized waveform...</span>
+              </div>
+            </div>
+          </section>
+          
+          <!-- Chart Section 2: Beat Comparison & Reconstruction Loss -->
+          <div class="charts-row">
+            
+            <!-- AE Reconstruction -->
+            <section class="card glass-panel h-medium">
+              <div class="chart-header">
+                <h4 class="chart-title-sub text-purple-400">Autoencoder Waveform Reconstruction</h4>
+                <span class="badge border-gray">Window: 180 samples</span>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="chart-beat-comparison"></canvas>
+                <div id="loader-comparison" class="chart-loader">
+                  <i data-lucide="refresh-cw" class="animate-spin text-purple-400"></i>
+                </div>
+              </div>
+            </section>
+            
+            <!-- Reconstruction Error Bar -->
+            <section class="card glass-panel h-medium">
+              <div class="chart-header">
+                <h4 class="chart-title-sub text-orange-400">Reconstruction Loss (Arrhythmia Spikes)</h4>
+                <span class="chart-instructions">Click bar to select beat</span>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="chart-reconstruction-loss"></canvas>
+                <div id="loader-loss" class="chart-loader">
+                  <i data-lucide="refresh-cw" class="animate-spin text-orange-400"></i>
+                </div>
+              </div>
+            </section>
+          </div>
+          
+          <!-- Chart Section 3: LSTM Forecast & SHAP Explainability -->
+          <div class="charts-row-split">
+            
+            <!-- LSTM Forecast -->
+            <section class="card glass-panel h-large split-left">
+              <div class="chart-header">
+                <h4 class="chart-title-sub text-rose-400">LSTM Cardiovascular Instability Forecast</h4>
+                <span class="badge border-rose">Horizon: +5 Beats</span>
+              </div>
+              <div class="chart-wrapper relative">
+                <canvas id="chart-lstm-forecast"></canvas>
+                <div id="loader-forecast" class="chart-loader">
+                  <i data-lucide="refresh-cw" class="animate-spin text-rose-400"></i>
+                </div>
+                <div class="risk-legend">
+                  <span class="legend-item red">Critical (&ge;0.25)</span>
+                  <span class="legend-item orange">Moderate</span>
+                  <span class="legend-item amber">Mild</span>
+                  <span class="legend-item green">Safe</span>
+                </div>
+              </div>
+            </section>
+            
+            <!-- SHAP Explainer -->
+            <section class="card glass-panel h-large split-right relative">
+              <div class="shap-summary bg-darkBg border-purple">
+                <span class="shap-summary-title">
+                  <span class="chart-pulse-dot bg-purple animate-ping"></span>
+                  SHAP Explainability Engine Interpretation
+                </span>
+                <p id="txt-shap-summary" class="shap-summary-text">
+                  "Attribution analysis loading..."
+                </p>
+              </div>
+              <div class="shap-charts-grid">
+                <!-- Segment Attribution -->
+                <div class="shap-subchart">
+                  <h4 class="chart-title-sub-mini text-cyan-400">ECG Segment Attribution Impact</h4>
+                  <div class="chart-wrapper-mini">
+                    <canvas id="chart-shap-bar"></canvas>
+                  </div>
+                </div>
+                <!-- Pointwise Attribution -->
+                <div class="shap-subchart">
+                  <h4 class="chart-title-sub-mini text-purple-400">Point-by-Point SHAP Attribution</h4>
+                  <div class="chart-wrapper-mini">
+                    <canvas id="chart-shap-line"></canvas>
+                  </div>
+                </div>
+              </div>
+              <div id="loader-shap" class="chart-loader">
+                <i data-lucide="refresh-cw" class="animate-spin text-purple-400"></i>
+                <span>Computing SHAP game theory values...</span>
+              </div>
+            </section>
+          </div>
+          
+        </div>
+      </main>
+    </div>
+    
+  </div>
+  
+  <!-- Frontend Javascript Module -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
